@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アンケート管理・集計</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@300;400;500;700&family=M+PLUS+Rounded+1c:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0edf8;
+    --surface: rgba(255,255,255,0.75);
+    --surface2: rgba(255,255,255,0.55);
+    --border: rgba(180,160,200,0.3);
+    --accent: #c4956a;
+    --accent2: #a07040;
+    --accent-soft: #e8c9a8;
+    --text: #5a3e2b;
+    --text-muted: #a08878;
+    --success: #88c9a0;
+    --error: #e8928a;
+    --radius: 20px;
+    --blob1: rgba(200,190,230,0.5);
+    --blob2: rgba(240,200,200,0.45);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: linear-gradient(135deg, #d8d4ee 0%, #f0d8d8 40%, #e8e8d0 100%);
+    color: var(--text);
+    font-family: 'M PLUS Rounded 1c', 'Zen Maru Gothic', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(60px);
+    z-index: 0;
+  }
+  body::before {
+    width: 500px; height: 500px;
+    background: var(--blob1);
+    top: -100px; left: -100px;
+    animation: blobFloat 8s ease-in-out infinite;
+  }
+  body::after {
+    width: 400px; height: 400px;
+    background: var(--blob2);
+    bottom: -80px; right: -80px;
+    animation: blobFloat 10s ease-in-out infinite reverse;
+  }
+  @keyframes blobFloat {
+    0%,100% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(20px,15px) scale(1.05); }
+  }
+
+  .app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(180,150,130,0.2);
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 20px rgba(160,120,100,0.08);
+  }
+  .tab {
+    flex: 1; padding: 16px;
+    background: none; border: none;
+    color: var(--text-muted);
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    font-size: 13px; cursor: pointer;
+    transition: all .25s;
+    border-bottom: 3px solid transparent;
+    font-weight: 500;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); background: rgba(200,160,130,0.08); }
+
+  /* PANELS */
+  .panel { display: none; flex: 1; padding: 24px 16px; max-width: 720px; margin: 0 auto; width: 100%; }
+  .panel.active { display: block; }
+
+  /* SETUP PANEL */
+  .setup-header {
+    margin-bottom: 28px;
+    padding: 24px 28px;
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(16px);
+    border: 1.5px solid rgba(200,170,140,0.25);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(160,120,100,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .shield-icon { font-size: 36px; margin-bottom: 10px; }
+  .setup-header h1 { font-size: 22px; font-weight: 700; color: var(--accent2); margin-bottom: 6px; }
+  .setup-header p { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
+
+  .section { margin-bottom: 24px; }
+  .section-label {
+    font-size: 12px; letter-spacing: .08em;
+    color: var(--accent); font-weight: 700;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-label::before { content: '🌿'; font-size: 14px; }
+
+  label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+
+  input[type="text"], input[type="password"], textarea, select {
+    width: 100%; padding: 12px 16px;
+    background: rgba(255,255,255,0.8);
+    border: 1.5px solid rgba(200,170,140,0.3);
+    border-radius: 14px; color: var(--text);
+    font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 14px;
+    transition: all .2s; outline: none;
+    box-shadow: 0 2px 8px rgba(160,120,100,0.06);
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent-soft);
+    box-shadow: 0 0 0 3px rgba(196,149,106,0.15), 0 2px 8px rgba(160,120,100,0.08);
+  }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .question-card {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(200,170,140,0.25);
+    border-radius: 20px; padding: 18px; margin-bottom: 12px;
+    position: relative;
+    box-shadow: 0 4px 16px rgba(160,120,100,0.08);
+  }
+  .question-row { display: flex; gap: 10px; align-items: flex-start; }
+  .question-row .q-input {
+    flex: 1; min-height: 60px; resize: vertical;
+    font-size: 15px; line-height: 1.6;
+  }
+
+  .q-type {
+    padding: 8px 8px; min-width: 0; width: auto; align-self: flex-start;
+    background: rgba(255,255,255,0.9);
+    border: 1.5px solid rgba(200,170,140,0.3);
+    border-radius: 14px; color: var(--text);
+    font-size: 13px; cursor: pointer; outline: none;
+  }
+
+  .btn {
+    padding: 11px 20px; border: none; border-radius: 50px;
+    cursor: pointer; font-size: 14px; font-weight: 600;
+    transition: all .2s; font-family: 'M PLUS Rounded 1c', sans-serif;
+  }
+  .btn-primary { background: linear-gradient(135deg, #c4956a, #d4a878); color: #fff; box-shadow: 0 4px 14px rgba(196,149,106,0.35); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(196,149,106,0.45); }
+  .btn-secondary {
+    background: rgba(255,255,255,0.8); color: var(--text);
+    border: 1.5px solid rgba(200,170,140,0.35);
+    box-shadow: 0 2px 8px rgba(160,120,100,0.08);
+  }
+  .btn-secondary:hover { border-color: var(--accent-soft); color: var(--accent); background: rgba(255,255,255,0.95); }
+  .btn-danger { background: transparent; color: #d4907a; border: 1.5px solid transparent; font-size: 16px; padding: 6px 10px; border-radius: 10px; }
+  .btn-danger:hover { border-color: #e8928a; background: rgba(232,146,138,0.08); }
+  .btn-sm { padding: 8px 16px; font-size: 13px; }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .options-area { margin-top: 12px; }
+  .option-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .option-row input { flex: 1; }
+
+  /* GOOGLE SHEETS CONFIG */
+  .sheet-config {
+    background: rgba(255,255,255,0.7);
+    border: 1.5px solid rgba(200,170,140,0.25);
+    border-radius: 20px; padding: 18px;
+    box-shadow: 0 4px 16px rgba(160,120,100,0.06);
+  }
+  .config-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; padding: 5px 14px;
+    border-radius: 20px; margin-bottom: 14px;
+    background: rgba(196,149,106,0.12); color: var(--accent2);
+    border: 1.5px solid rgba(196,149,106,0.25);
+    font-weight: 600;
+  }
+  .help-text { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.7; }
+  .help-text a { color: var(--accent); text-decoration: none; font-weight: 600; }
+
+  /* RESULTS */
+  .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
+  .results-header h2 { font-size: 20px; font-weight: 700; color: var(--accent2); }
+  .response-count {
+    font-size: 13px; font-weight: 600;
+    color: var(--accent); background: rgba(196,149,106,0.12);
+    padding: 6px 14px; border-radius: 20px;
+    border: 1.5px solid rgba(196,149,106,0.2);
+  }
+
+  .result-card {
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(200,170,140,0.25);
+    border-radius: 20px; padding: 22px; margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(160,120,100,0.09);
+  }
+  .result-q { font-size: 14px; color: var(--text-muted); margin-bottom: 14px; }
+
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .bar-label { font-size: 13px; min-width: 110px; flex-shrink: 0; font-weight: 500; }
+  .bar-track { flex: 1; height: 10px; background: rgba(200,170,140,0.2); border-radius: 10px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, #c4956a, #e0b888); border-radius: 10px; transition: width .6s cubic-bezier(.34,1.56,.64,1); }
+  .bar-pct { font-size: 12px; color: var(--text-muted); min-width: 40px; text-align: right; font-weight: 600; }
+
+  .text-responses { display: flex; flex-direction: column; gap: 10px; }
+  .text-response {
+    background: rgba(255,255,255,0.8);
+    border-left: 4px solid var(--accent-soft);
+    padding: 12px 16px; border-radius: 0 14px 14px 0;
+    font-size: 14px; line-height: 1.7; color: var(--text);
+  }
+
+  /* OWL decoration */
+  .owl-deco {
+    position: fixed; bottom: 80px; right: 16px;
+    font-size: 36px; opacity: 0.18;
+    animation: owlBob 4s ease-in-out infinite;
+    pointer-events: none; z-index: 0;
+    filter: sepia(0.3);
+  }
+  @keyframes owlBob {
+    0%,100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-8px) rotate(3deg); }
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    padding: 14px 22px; border-radius: 50px;
+    font-size: 14px; font-weight: 600;
+    transform: translateY(80px); opacity: 0;
+    transition: all .35s cubic-bezier(.34,1.56,.64,1); z-index: 999;
+    max-width: 320px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: linear-gradient(135deg, #88c9a0, #a8d8b8); color: #2a5a3a; }
+  .toast.error { background: linear-gradient(135deg, #e8928a, #f0a89a); color: #fff; }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-icon { font-size: 52px; margin-bottom: 16px; display: block; animation: owlBob 3s ease-in-out infinite; }
+
+  .divider { height: 1px; background: rgba(200,170,140,0.25); margin: 24px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="owl-deco">🦉</div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('setup')">⚙️ 設定・作成</button>
+    <button class="tab" onclick="switchTab('results')">📊 集計結果</button>
+  </div>
+
+  <!-- SETUP PANEL -->
+  <div id="tab-setup" class="panel active">
+    <div class="setup-header">
+      <div class="shield-icon">⚙️</div>
+      <h1>アンケート管理システム</h1>
+      <p>アンケート内容を設定し、配布用の回答用URLを発行します。</p>
+    </div>
+
+    <!-- Basic Info -->
+    <div class="section">
+      <div class="section-label">アンケート基本情報</div>
+      <label>タイトル</label>
+      <input type="text" id="survey-title" placeholder="例：社内満足度調査" style="margin-bottom:12px">
+      <label>説明（任意）</label>
+      <textarea id="survey-desc" placeholder="アンケートの目的や注意事項など"></textarea>
+    </div>
+
+    <!-- Questions -->
+    <div class="section">
+      <div class="section-label">質問</div>
+      <div id="questions-container"></div>
+      <button class="btn btn-secondary btn-sm" onclick="addQuestion()">＋ 質問を追加</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Google Sheets Config -->
+    <div class="section">
+      <div class="section-label">Google Sheets 連携</div>
+      <div class="sheet-config">
+        <div class="config-badge">🔗 保存先設定</div>
+        <label>Spreadsheet ID</label>
+        <input type="text" id="sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" style="margin-bottom:12px">
+        <p class="help-text">SpreadsheetのURLの中の <code style="background:var(--border);padding:2px 6px;border-radius:4px">/d/＜ここ＞/edit</code> の部分</p>
+
+        <label style="margin-top:14px">Sheet名（タブ名）</label>
+        <input type="text" id="sheet-name" placeholder="Sheet1" style="margin-bottom:12px">
+
+        <label>Google Apps Script Web App URL</label>
+        <input type="text" id="gas-url" placeholder="https://script.google.com/macros/s/.../exec">
+        <p class="help-text" style="margin-top:8px">
+          ⬇️ <a href="#" onclick="showGasHelp()">GASの設定方法を見る</a>（クリックで手順を表示）
+        </p>
+        <div id="gas-help" style="display:none;margin-top:12px;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          <p class="help-text" style="color:var(--text)"><strong>Google Apps Scriptの設定手順：</strong></p>
+          <ol style="font-size:12px;color:var(--text-muted);line-height:2;padding-left:20px;margin-top:8px">
+            <li>Google Sheetsを開き「拡張機能」→「Apps Script」</li>
+            <li>既存のコードを消去し、下記のコード（doGet付き）を貼り付けて保存</li>
+            <li>「デプロイ」→「新しいデプロイ」→「ウェブアプリ」</li>
+            <li>「アクセスできるユーザー」を「全員」に設定してデプロイ</li>
+            <li>発行されたURLをここに貼り付け</li>
+          </ol>
+          <pre style="margin-top:12px;background:var(--surface2);padding:12px;border-radius:8px;font-size:11px;overflow-x:auto;color:var(--accent2)">
+function doGet(e) {
+  let ss;
+  try {
+    ss = e.parameter.id ? SpreadsheetApp.openById(e.parameter.id) : SpreadsheetApp.getActiveSpreadsheet();
+  } catch(err) {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  }
+  const sheet = ss.getSheetByName(e.parameter.sheet || 'Sheet1');
+  let data = [];
+  if (sheet.getLastRow() > 0) {
+    data = sheet.getDataRange().getValues();
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify({result:'ok', data: data}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  let ss;
+  try {
+    ss = e.parameter.id ? SpreadsheetApp.openById(e.parameter.id) : SpreadsheetApp.getActiveSpreadsheet();
+  } catch(err) {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  }
+  const sheet = ss.getSheetByName(e.parameter.sheet || 'Sheet1');
+  const data = JSON.parse(e.parameter.data);
+  sheet.appendRow(data);
+  return ContentService
+    .createTextOutput(JSON.stringify({result:'ok'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- URL Generator -->
+    <div class="section">
+      <div class="section-label">回答用ページの共有</div>
+      <label>回答用URLの配布元設定</label>
+      <input type="text" id="answer-html-base" placeholder="例: https://example.com/answer.html" style="margin-bottom:12px">
+      <p class="help-text" style="margin-bottom: 12px;">※ 回答用の「answer.html」を設置する先のURLを入力してください（ローカル環境なら相対パス <code>answer.html</code> のままで動作確認できます）</p>
+      
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-primary" onclick="saveAndGenerateURL()">💾 設定を保存して回答用URLを生成</button>
+      </div>
+
+      <div id="generated-url-area" style="display:none; margin-top:16px; padding:16px; background:rgba(255,255,255,0.8); border-radius:14px; border:1.5px solid var(--accent-soft);">
+        <label style="color:var(--accent2); font-weight:700;">📨 回答用URL</label>
+        <input type="text" id="final-answer-url" readonly style="margin-bottom:12px; background:rgba(0,0,0,0.03);">
+        <button class="btn btn-secondary btn-sm" onclick="copyAnswerURL()">📋 URLをコピー</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS PANEL -->
+  <div id="tab-results" class="panel">
+    <div class="results-header">
+      <h2>集計結果</h2>
+      <button class="btn btn-secondary btn-sm" onclick="fetchResultsFromGAS()">🔄 データを更新</button>
+    </div>
+    <div id="results-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────
+let survey = {
+  title: '',
+  desc: '',
+  questions: [],
+  gasUrl: '',
+  sheetId: '',
+  sheetName: 'Sheet1'
+};
+
+let responses = []; 
+let qCounter = 0;
+
+window.onload = () => {
+  const saved = localStorage.getItem('anonSurveyAdmin');
+  if (saved) {
+    try { 
+      survey = JSON.parse(saved); 
+      loadSetupForm(); 
+    } catch(e) {}
+  } else {
+    addQuestion();
+  }
+  
+  document.getElementById('answer-html-base').value = localStorage.getItem('answerHtmlBase') || 'answer.html';
+  renderResults();
+};
+
+function loadSetupForm() {
+  document.getElementById('survey-title').value = survey.title || '';
+  document.getElementById('survey-desc').value = survey.desc || '';
+  document.getElementById('gas-url').value = survey.gasUrl || '';
+  document.getElementById('sheet-id').value = survey.sheetId || '';
+  document.getElementById('sheet-name').value = survey.sheetName || 'Sheet1';
+  const c = document.getElementById('questions-container');
+  c.innerHTML = '';
+  survey.questions.forEach((q, i) => addQuestionCard(q));
+  if (survey.questions.length === 0) addQuestion();
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['setup','results'][i] === name);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'results') {
+    fetchResultsFromGAS();
+  }
+}
+
+function addQuestion() {
+  addQuestionCard({ id: ++qCounter, text: '', type: 'text', options: [], required: false });
+}
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function addQuestionCard(q) {
+  if (!q.id) q.id = ++qCounter;
+  const c = document.getElementById('questions-container');
+  const div = document.createElement('div');
+  div.className = 'question-card';
+  div.dataset.qid = q.id;
+  div.innerHTML = `
+    <div class="question-row">
+      <textarea class="q-input" placeholder="質問文を入力" rows="2" oninput="autoGrow(this)">${esc(q.text)}</textarea>
+      <select class="q-type" onchange="updateType(this)">
+        <option value="text" ${q.type==='text'?'selected':''}>記述式</option>
+        <option value="radio" ${q.type==='radio'?'selected':''}>単一選択</option>
+        <option value="checkbox" ${q.type==='checkbox'?'selected':''}>複数選択</option>
+        <option value="scale" ${q.type==='scale'?'selected':''}>5段階評価</option>
+      </select>
+      <button class="btn btn-danger" onclick="removeQuestion(this)">×</button>
+    </div>
+    <div class="options-area" style="display:${q.type==='radio'||q.type==='checkbox'?'block':'none'}">
+      <div class="options-list"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addOption(this)">＋ 選択肢を追加</button>
+    </div>
+    <label style="margin-top:10px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-muted)">
+      <input type="checkbox" ${q.required?'checked':''} style="accent-color:var(--accent)"> 必須
+    </label>
+  `;
+  c.appendChild(div);
+  autoGrow(div.querySelector('.q-input'));
+
+  if ((q.type==='radio'||q.type==='checkbox') && q.options.length) {
+    q.options.forEach(opt => addOptionRow(div.querySelector('.options-list'), opt));
+  } else if (q.type==='radio'||q.type==='checkbox') {
+    addOptionRow(div.querySelector('.options-list'), '');
+    addOptionRow(div.querySelector('.options-list'), '');
+  }
+}
+
+function updateType(sel) {
+  const card = sel.closest('.question-card');
+  const area = card.querySelector('.options-area');
+  const t = sel.value;
+  area.style.display = (t==='radio'||t==='checkbox') ? 'block' : 'none';
+}
+
+function addOptionRow(list, val='') {
+  const row = document.createElement('div');
+  row.className = 'option-row';
+  row.innerHTML = `<input type="text" placeholder="選択肢" value="${esc(val)}"><button class="btn btn-danger" onclick="this.parentElement.remove()">×</button>`;
+  list.appendChild(row);
+}
+
+function addOption(btn) {
+  addOptionRow(btn.previousElementSibling);
+}
+
+function removeQuestion(btn) {
+  btn.closest('.question-card').remove();
+}
+
+function collectSetup() {
+  const questions = [];
+  document.querySelectorAll('.question-card').forEach(card => {
+    const text = card.querySelector('.q-input').value.trim();
+    const type = card.querySelector('.q-type').value;
+    const required = card.querySelector('input[type="checkbox"]').checked;
+    const options = [...card.querySelectorAll('.options-list .option-row input')].map(i => i.value.trim()).filter(Boolean);
+    if (text) questions.push({ id: card.dataset.qid, text, type, options, required });
+  });
+  return questions;
+}
+
+// 【差し替え】saveAndGenerateURL 関数
+async function saveAndGenerateURL() {
+  survey.title = document.getElementById('survey-title').value.trim() || '無題のアンケート';
+  survey.desc = document.getElementById('survey-desc').value.trim();
+  survey.gasUrl = document.getElementById('gas-url').value.trim();
+  survey.sheetId = document.getElementById('sheet-id').value.trim();
+  survey.sheetName = document.getElementById('sheet-name').value.trim() || 'Sheet1';
+  survey.questions = collectSetup();
+  
+  localStorage.setItem('anonSurveyAdmin', JSON.stringify(survey));
+  
+  const baseWebUrl = document.getElementById('answer-html-base').value.trim() || 'answer.html';
+  localStorage.setItem('answerHtmlBase', baseWebUrl);
+
+  // 1. データの軽量化（キーの短縮・不要データの削減）
+  const compressedObj = {
+    t: survey.title,
+    d: survey.desc || undefined,
+    g: survey.gasUrl || undefined,
+    s: survey.sheetId || undefined,
+    n: survey.sheetName !== 'Sheet1' ? survey.sheetName : undefined, // デフォルト値なら省略
+    q: survey.questions.map(q => {
+      const minQ = { i: q.id, x: q.text, y: q.type };
+      if (q.options && q.options.length > 0) minQ.o = q.options;
+      if (q.required) minQ.r = 1; // true の場合は 1 を設定、それ以外は省略
+      return minQ;
+    })
+  };
+
+  try {
+    // 2. Deflate圧縮の実行
+    const jsonStr = JSON.stringify(compressedObj);
+    const utf8Bytes = new TextEncoder().encode(jsonStr);
+    
+    const stream = new Blob([utf8Bytes]).stream();
+    const compressedStream = stream.pipeThrough(new CompressionStream('deflate'));
+    const response = new Response(compressedStream);
+    const buffer = await response.arrayBuffer();
+    
+    // 3. Base64URLエンコード
+    const binStr = String.fromCharCode(...new Uint8Array(buffer));
+    const encodedData = btoa(binStr)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, ''); 
+
+    const finalUrl = baseWebUrl + "?d=" + encodedData;
+
+    document.getElementById('final-answer-url').value = finalUrl;
+    document.getElementById('generated-url-area').style.display = 'block';
+
+    showToast('設定を保存し、回答用URLを生成しました ✓', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('URL生成中にエラーが発生しました', 'error');
+  }
+}
+
+function copyAnswerURL() {
+  const input = document.getElementById('final-answer-url');
+  input.select();
+  document.execCommand('copy');
+  showToast('クリップボードにコピーしました', 'success');
+}
+
+function showGasHelp() {
+  const el = document.getElementById('gas-help');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function fetchResultsFromGAS() {
+  const el = document.getElementById('results-content');
+  
+  if (!survey.gasUrl) {
+    el.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">📊</div>
+        <p>Google Apps Script URLが登録されていません。<br>「設定・作成」タブから設定を行ってください。</p>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="empty"><p>⚡ スプレッドシートからデータを同期中...</p></div>`;
+
+  try {
+    const fetchUrl = `${survey.gasUrl}?id=${survey.sheetId || ''}&sheet=${survey.sheetName}`;
+    const response = await fetch(fetchUrl);
+    const resJson = await response.json();
+
+    if (resJson.result === 'ok' && resJson.data && resJson.data.length > 1) {
+      const headers = resJson.data[0];
+      const rows = resJson.data.slice(1);
+      
+      responses = rows.map(r => ({
+        timestamp: r[0],
+        answers: r.slice(1)
+      }));
+      
+      renderResults();
+    } else {
+      responses = [];
+      renderResults();
+    }
+  } catch (e) {
+    console.error(e);
+    el.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">⚠️</div>
+        <p>データの取得に失敗しました。<br>GASの公開設定（全員アクセス可能）およびスプレッドシートIDを確認してください。</p>
+      </div>`;
+  }
+}
+
+function renderResults() {
+  const el = document.getElementById('results-content');
+  if (!responses.length) {
+    el.innerHTML = `
+      <div class="results-header"><h2>集計結果</h2><span class="response-count">0 件</span></div>
+      <div class="empty"><div class="empty-icon">📊</div><p>まだ回答がありません。<br>回答された内容はスプレッドシートに保存されます。</p></div>`;
+    return;
+  }
+
+  let html = `<div class="results-header"><h2>集計結果</h2><span class="response-count">${responses.length} 件の回答</span></div>`;
+  html += `<div style="margin-bottom:12px"><button class="btn btn-secondary btn-sm" onclick="exportCSV()">📥 CSVエクスポート</button></div>`;
+
+  survey.questions.forEach((q, qi) => {
+    html += `<div class="result-card"><div class="q-text" style="font-weight:600;margin-bottom:4px">${esc(q.text)}</div><div class="result-q">`;
+
+    const vals = responses.map(r => r.answers[qi] || '');
+
+    if (q.type === 'text') {
+      const filled = vals.filter(Boolean);
+      html += `<div class="text-responses">` + filled.map(v => `<div class="text-response">${esc(v)}</div>`).join('') + `</div>`;
+    } else if (q.type === 'radio' || q.type === 'checkbox') {
+      const counts = {};
+      vals.forEach(v => {
+        v.split(', ').forEach(opt => { if(opt) counts[opt] = (counts[opt]||0)+1; });
+      });
+      const total = responses.length;
+      html += q.options.map(o => {
+        const cnt = counts[o] || 0;
+        const pct = Math.round(cnt/total*100);
+        return `<div class="bar-row">
+          <span class="bar-label">${esc(o)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <span class="bar-pct">${pct}%</span>
+        </div>`;
+      }).join('');
+    } else if (q.type === 'scale') {
+      const nums = vals.filter(Boolean).map(Number);
+      const avg = nums.length ? (nums.reduce((a,b)=>a+b,0)/nums.length).toFixed(1) : '-';
+      const counts = {1:0,2:0,3:0,4:0,5:0};
+      nums.forEach(n => counts[n]++);
+      html += `<div style="margin-bottom:10px;font-family:'Space Mono',monospace;color:var(--accent2)">平均: ${avg} / 5</div>`;
+      html += [1,2,3,4,5].map(n => {
+        const pct = nums.length ? Math.round(counts[n]/nums.length*100) : 0;
+        return `<div class="bar-row">
+          <span class="bar-label">${n}点</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <span class="bar-pct">${pct}%</span>
+        </div>`;
+      }).join('');
+    }
+
+    html += `</div></div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function exportCSV() {
+  const headers = ['タイムスタンプ', ...survey.questions.map(q => q.text)];
+  const rows = responses.map(r => [r.timestamp, ...r.answers]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'survey_results.csv'; a.click();
+}
+
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

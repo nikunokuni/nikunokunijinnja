@@ -1,0 +1,367 @@
+<!-- START OF FILE answer.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>匿名アンケート回答フォーム</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@300;400;500;700&family=M+PLUS+Rounded+1c:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0edf8;
+    --surface: rgba(255,255,255,0.75);
+    --border: rgba(180,160,200,0.3);
+    --accent: #c4956a;
+    --accent2: #a07040;
+    --accent-soft: #e8c9a8;
+    --text: #5a3e2b;
+    --text-muted: #a08878;
+    --success: #88c9a0;
+    --error: #e8928a;
+    --radius: 20px;
+    --blob1: rgba(200,190,230,0.5);
+    --blob2: rgba(240,200,200,0.45);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: linear-gradient(135deg, #d8d4ee 0%, #f0d8d8 40%, #e8e8d0 100%);
+    color: var(--text);
+    font-family: 'M PLUS Rounded 1c', 'Zen Maru Gothic', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(60px);
+    z-index: 0;
+  }
+  body::before {
+    width: 500px; height: 500px;
+    background: var(--blob1);
+    top: -100px; left: -100px;
+    animation: blobFloat 8s ease-in-out infinite;
+  }
+  body::after {
+    width: 400px; height: 400px;
+    background: var(--blob2);
+    bottom: -80px; right: -80px;
+    animation: blobFloat 10s ease-in-out infinite reverse;
+  }
+  @keyframes blobFloat {
+    0%,100% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(20px,15px) scale(1.05); }
+  }
+
+  .app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  .panel { flex: 1; padding: 32px 16px; max-width: 720px; margin: 0 auto; width: 100%; }
+
+  .anon-badge {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(136,201,160,0.15);
+    border: 1.5px solid rgba(136,201,160,0.35);
+    border-radius: 14px; padding: 12px 16px; margin-bottom: 24px;
+    font-size: 13px; color: #5a9a70; font-weight: 500;
+  }
+
+  .survey-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: var(--accent2); }
+  .survey-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 28px; line-height: 1.7; }
+
+  .q-block { margin-bottom: 28px; }
+  .q-text { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: var(--text); }
+  .q-required { color: var(--error); margin-left: 4px; }
+
+  textarea {
+    width: 100%; padding: 12px 16px;
+    background: rgba(255,255,255,0.8);
+    border: 1.5px solid rgba(200,170,140,0.3);
+    border-radius: 14px; color: var(--text);
+    font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 14px;
+    transition: all .2s; outline: none;
+    box-shadow: 0 2px 8px rgba(160,120,100,0.06);
+    resize: vertical; min-height: 90px;
+  }
+  textarea:focus {
+    border-color: var(--accent-soft);
+    box-shadow: 0 0 0 3px rgba(196,149,106,0.15), 0 2px 8px rgba(160,120,100,0.08);
+  }
+
+  .radio-group, .check-group { display: flex; flex-direction: column; gap: 8px; }
+  .radio-item, .check-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 16px;
+    background: rgba(255,255,255,0.75);
+    border: 1.5px solid rgba(200,170,140,0.25);
+    border-radius: 14px; cursor: pointer; transition: all .18s;
+    font-size: 14px; font-weight: 500;
+    box-shadow: 0 2px 8px rgba(160,120,100,0.06);
+  }
+  .radio-item:hover, .check-item:hover { border-color: var(--accent-soft); background: rgba(255,255,255,0.95); transform: translateX(3px); }
+  .radio-item input, .check-item input { accent-color: var(--accent); width: 16px; height: 16px; }
+  .radio-item.selected, .check-item.selected {
+    border-color: var(--accent);
+    background: rgba(196,149,106,0.08);
+    box-shadow: 0 2px 12px rgba(196,149,106,0.15);
+  }
+
+  .scale-row { display: flex; gap: 8px; justify-content: space-between; }
+  .scale-btn {
+    flex: 1; padding: 14px 4px; text-align: center;
+    background: rgba(255,255,255,0.75);
+    border: 1.5px solid rgba(200,170,140,0.25);
+    border-radius: 14px; cursor: pointer; transition: all .18s;
+    font-size: 15px; font-weight: 600; color: var(--text);
+    box-shadow: 0 2px 8px rgba(160,120,100,0.06);
+  }
+  .scale-btn:hover { background: rgba(255,255,255,0.95); border-color: var(--accent-soft); transform: translateY(-2px); }
+  .scale-btn.selected { background: linear-gradient(135deg, #c4956a, #d4a878); border-color: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(196,149,106,0.3); transform: translateY(-2px); }
+  .scale-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 8px; font-weight: 500; }
+
+  .submit-btn {
+    width: 100%; padding: 18px; border: none; border-radius: 50px;
+    background: linear-gradient(135deg, #c4956a 0%, #d4b080 50%, #c49060 100%);
+    color: #fff; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: all .25s;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    margin-top: 12px;
+    box-shadow: 0 6px 24px rgba(196,149,106,0.4);
+    letter-spacing: 0.03em;
+  }
+  .submit-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(196,149,106,0.5); }
+  .submit-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+  /* OWL decoration */
+  .owl-deco {
+    position: fixed; bottom: 80px; right: 16px;
+    font-size: 36px; opacity: 0.18;
+    animation: owlBob 4s ease-in-out infinite;
+    pointer-events: none; z-index: 0;
+    filter: sepia(0.3);
+  }
+  @keyframes owlBob {
+    0%,100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-8px) rotate(3deg); }
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    padding: 14px 22px; border-radius: 50px;
+    font-size: 14px; font-weight: 600;
+    transform: translateY(80px); opacity: 0;
+    transition: all .35s cubic-bezier(.34,1.56,.64,1); z-index: 999;
+    max-width: 320px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: linear-gradient(135deg, #88c9a0, #a8d8b8); color: #2a5a3a; }
+  .toast.error { background: linear-gradient(135deg, #e8928a, #f0a89a); color: #fff; }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-icon { font-size: 52px; margin-bottom: 16px; display: block; animation: owlBob 3s ease-in-out infinite; }
+
+  @media (max-width: 480px) {
+    .scale-row { gap: 5px; }
+    .scale-btn { font-size: 14px; padding: 12px 2px; border-radius: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="owl-deco">🦉</div>
+  <div class="panel">
+    <div id="answer-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let survey = null;
+
+window.onload = async () => {
+  const params = new URLSearchParams(window.location.search);
+  const dataParam = params.get('d');
+  
+  if (dataParam) {
+    try {
+      // 【修正】安全に置き換えた記号を元に戻し、日本語のバイト配列として復元します
+      let safeBase64 = dataParam
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+        while (safeBase64.length % 4) {
+        safeBase64 += '=';
+      }
+        
+      const binaryStr = atob(safeBase64);
+      const len = binaryStr.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+
+      const stream = new Blob([bytes]).stream();
+      const decompressedStream = stream.pipeThrough(new DecompressionStream('deflate'));
+      const buffer = await new Response(decompressedStream).arrayBuffer();
+      const compressed = JSON.parse(new TextDecoder().decode(buffer));
+
+      survey = {
+        title: compressed.t,
+        desc: compressed.d,
+        gasUrl: compressed.g,
+        sheetId: compressed.s,
+        sheetName: compressed.n || 'Sheet1',
+        questions: (compressed.q || []).map(q => ({
+          id: q.i,
+          text: q.x,
+          type: q.y,
+          options: q.o || [],
+          required: !!q.r
+        }))
+      };
+    } catch (e) {
+      console.error("アンケートデータの解析に失敗しました:", e);
+    }
+  }
+
+  renderAnswer();
+};
+
+function renderAnswer() {
+  const el = document.getElementById('answer-content');
+  if (!survey || !survey.questions || !survey.questions.length) {
+    el.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">⚠️</div>
+        <p>アンケート情報が見つかりません。<br>正しい回答用URLからアクセスしてください。</p>
+      </div>`;
+    return;
+  }
+
+  let html = `
+    <div class="anon-badge">🔒 このアンケートは完全匿名です。個人情報は一切収集しません。</div>
+    <div class="survey-title">${esc(survey.title || '無題のアンケート')}</div>
+    ${survey.desc ? `<div class="survey-desc">${esc(survey.desc)}</div>` : ''}
+  `;
+
+  survey.questions.forEach((q, qi) => {
+    html += `<div class="q-block" data-qi="${qi}"><div class="q-text">${esc(q.text)}${q.required?'<span class="q-required">*</span>':''}</div>`;
+    if (q.type === 'text') {
+      html += `<textarea class="a-input" placeholder="回答を入力してください"></textarea>`;
+    } else if (q.type === 'radio') {
+      html += `<div class="radio-group">` + q.options.map((o, oi) =>
+        `<label class="radio-item" onclick="selectItem(this)"><input type="radio" name="q${qi}" value="${esc(o)}"> ${esc(o)}</label>`
+      ).join('') + `</div>`;
+    } else if (q.type === 'checkbox') {
+      html += `<div class="check-group">` + q.options.map((o, oi) =>
+        `<label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="${esc(o)}"> ${esc(o)}</label>`
+      ).join('') + `</div>`;
+    } else if (q.type === 'scale') {
+      html += `<div class="scale-row">` + [1,2,3,4,5].map(n =>
+        `<div class="scale-btn" onclick="selectScale(this, ${qi})" data-val="${n}">${n}</div>`
+      ).join('') + `</div>
+      <div class="scale-labels"><span>まったくそう思わない</span><span>非常にそう思う</span></div>`;
+    }
+    html += `</div>`;
+  });
+
+  html += `<button class="submit-btn" onclick="submitAnswer()">回答を送信する 🚀</button>`;
+  el.innerHTML = html;
+}
+
+function selectItem(label) {
+  label.closest('.radio-group').querySelectorAll('.radio-item').forEach(l => l.classList.remove('selected'));
+  label.classList.add('selected');
+  label.querySelector('input').checked = true;
+}
+
+function toggleCheck(label) {
+  const inp = label.querySelector('input');
+  inp.checked = !inp.checked;
+  label.classList.toggle('selected', inp.checked);
+}
+
+function selectScale(btn, qi) {
+  btn.closest('.scale-row').querySelectorAll('.scale-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+async function submitAnswer() {
+  const answers = [];
+  let valid = true;
+
+  survey.questions.forEach((q, qi) => {
+    const block = document.querySelector(`.q-block[data-qi="${qi}"]`);
+    let val = '';
+    if (q.type === 'text') {
+      val = block.querySelector('.a-input').value.trim();
+    } else if (q.type === 'radio') {
+      const checked = block.querySelector('input[type="radio"]:checked');
+      val = checked ? checked.value : '';
+    } else if (q.type === 'checkbox') {
+      val = [...block.querySelectorAll('input[type="checkbox"]:checked')].map(i => i.value).join(', ');
+    } else if (q.type === 'scale') {
+      const sel = block.querySelector('.scale-btn.selected');
+      val = sel ? sel.dataset.val : '';
+    }
+    if (q.required && !val) {
+      valid = false;
+      block.querySelector('.q-text').style.color = 'var(--error)';
+    } else {
+      block.querySelector('.q-text').style.color = '';
+    }
+    answers.push(val);
+  });
+
+  if (!valid) { showToast('必須項目を入力してください', 'error'); return; }
+
+  const timestamp = new Date().toLocaleString('ja-JP');
+  const row = [timestamp, ...answers];
+
+  if (survey.gasUrl) {
+    try {
+      const btn = document.querySelector('.submit-btn');
+      btn.disabled = true; btn.textContent = '送信中…';
+      const params = new URLSearchParams({
+        id: survey.sheetId || '',
+        sheet: survey.sheetName,
+        data: JSON.stringify(row)
+      });
+      await fetch(survey.gasUrl, { method: 'POST', body: params });
+      
+      showToast('ご回答ありがとうございました！', 'success');
+      document.getElementById('answer-content').innerHTML = `
+        <div class="empty" style="padding: 40px 10px;">
+          <div class="empty-icon">🎉</div>
+          <h2 style="color:var(--accent2); margin-bottom: 8px;">送信完了</h2>
+          <p>アンケートのご回答が送信されました。ご協力ありがとうございました。</p>
+        </div>`;
+    } catch(e) {
+      showToast('送信に失敗しました。接続環境をご確認ください。', 'error');
+      const btn = document.querySelector('.submit-btn');
+      btn.textContent = '回答を送信する 🚀'; btn.disabled = false;
+    }
+  } else {
+    showToast('エラー：送信先のGoogle Apps Scriptが設定されていません。', 'error');
+  }
+}
+
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
